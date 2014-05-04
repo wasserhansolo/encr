@@ -2,23 +2,32 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 
 void getlinefromstdin();
 void encryptandprint();
+void terminate();
 
 #define LINEBUFFERSIZE (1024)
 
 int main(int argc, char** argv)
 {
+    printf("My pid: %d",getpid());
+    
+    
+    //if sigterm signal is cought, execute terminate()
+    struct sigaction action;
+    memset(&action, 0, sizeof(struct sigaction));
+    action.sa_handler = terminate;
+    sigaction(SIGTERM, &action, NULL);
+    
     getlinefromstdin();
     return EXIT_SUCCESS;
 }
 
-
 void getlinefromstdin(){
    
-    
- static char  *linebuffer;
+    char  *linebuffer;
     linebuffer = malloc(sizeof(char)*LINEBUFFERSIZE);
     
     
@@ -39,12 +48,15 @@ void getlinefromstdin(){
     
             case 0:
             encryptandprint(linebuffer);
-                printf("child forktest");
                 break;
+            
             default:
-                printf("father forktest:");
+            
             
             fgets(linebuffer, LINEBUFFERSIZE, stdin);
+            
+            int status=0;
+            waitpid(child,&status,0);
             
             //remove newline from string
             
@@ -52,6 +64,7 @@ void getlinefromstdin(){
                 linebuffer[strlen(linebuffer)-1]=0;
             }
 
+            
             
                 break;
     }
@@ -68,7 +81,13 @@ void encryptandprint(char * linebuffer){
     char *linetoencrypt;
     linetoencrypt=malloc(sizeof(char)*LINEBUFFERSIZE);
     strcpy(linetoencrypt,linebuffer);
-    sleep(5);
+    sleep(10);
     printf("encryptandprint %s",linebuffer);
     
 }
+
+void terminate(){
+
+    printf("just caught SIGTERM SIGNAL");
+}
+
