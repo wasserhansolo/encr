@@ -8,13 +8,13 @@
  * 
  **/
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
 #include <time.h>
+#include <sys/wait.h>
 
 /**
  * getlinefromstdin
@@ -23,7 +23,6 @@
  * The function reads from the stdin, cutts the newline (if there is any) forks a child process, which encrypts it and takes a certain (random) ammount of time to do this and prints it to the stdout.
  *
  */
-
 int getlinefromstdin();
 
 /**
@@ -121,7 +120,8 @@ int getlinefromstdin(){
             int randomint = rand();
             int randomforsleep = randomint % 9;
             sleep(randomforsleep);
-            char *encrypted = crypt(linetoencrypt,"salt");
+            
+	   char *encrypted = crypt(linetoencrypt,"salt");
             (void)printf("encr: %s --> %s\n",linetoencrypt, encrypted);
             exit(EXIT_SUCCESS);}
                 break;
