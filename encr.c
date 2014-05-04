@@ -7,8 +7,10 @@
 void getlinefromstdin();
 void encryptandprint();
 void terminate();
+void childhandler();
 
 #define LINEBUFFERSIZE (1024)
+int status=1;
 
 int main(int argc, char** argv)
 {
@@ -16,10 +18,11 @@ int main(int argc, char** argv)
     
     
     //if sigterm signal is cought, execute terminate()
-    struct sigaction action;
-    memset(&action, 0, sizeof(struct sigaction));
-    action.sa_handler = terminate;
-    sigaction(SIGTERM, &action, NULL);
+    struct sigaction term;
+    memset(&term, 0, sizeof(struct sigaction));
+    term.sa_handler = terminate;
+    sigaction(SIGTERM, &term, NULL);
+    signal(SIGCHLD, childhandler);
     
     getlinefromstdin();
     return EXIT_SUCCESS;
@@ -31,15 +34,21 @@ void getlinefromstdin(){
     linebuffer = malloc(sizeof(char)*LINEBUFFERSIZE);
     
     
-    fgets(linebuffer, LINEBUFFERSIZE, stdin);
     
-    //remove newline from string
+
+    while(1){
     
-    if(linebuffer[strlen(linebuffer)-1]=='\n') {
-        linebuffer[strlen(linebuffer)-1]=0;
-    }
-    
+        fgets(linebuffer, LINEBUFFERSIZE, stdin);
+        
+        //remove newline from string
+        
+        if(linebuffer[strlen(linebuffer)-1]=='\n') {
+            linebuffer[strlen(linebuffer)-1]=0;
+        }
+        
+        
     pid_t child;
+        
     switch (child = fork()){
             case -1:
                 perror("cannot create child process");
@@ -47,28 +56,33 @@ void getlinefromstdin(){
                 break;
     
             case 0:
+            
+            printf("\nfrom child pid: %i\n",  getpid());
             encryptandprint(linebuffer);
+            exit(EXIT_SUCCESS);
                 break;
             
             default:
             
             
-            fgets(linebuffer, LINEBUFFERSIZE, stdin);
+            //fgets(linebuffer, LINEBUFFERSIZE, stdin);
+        {
+            waitpid(-1,&status, WNOHANG);
+            //waitpid(child,&status,0);
+            printf("child exit status: %i",status);
             
-            int status=0;
-            waitpid(child,&status,0);
             
-            //remove newline from string
+        }   //remove newline from string
             
-            if(linebuffer[strlen(linebuffer)-1]=='\n') {
-                linebuffer[strlen(linebuffer)-1]=0;
-            }
+            //if(linebuffer[strlen(linebuffer)-1]=='\n') {
+            //    linebuffer[strlen(linebuffer)-1]=0;
+            //}
 
             
             
                 break;
     }
-    
+    }
     
     free(linebuffer);
 
@@ -81,13 +95,33 @@ void encryptandprint(char * linebuffer){
     char *linetoencrypt;
     linetoencrypt=malloc(sizeof(char)*LINEBUFFERSIZE);
     strcpy(linetoencrypt,linebuffer);
-    sleep(10);
-    printf("encryptandprint %s",linebuffer);
+    sleep(5);
+    printf("\nencryptandprint %s",linebuffer);
+    exit(EXIT_SUCCESS);
     
 }
 
-void terminate(){
+void childhandler(int signal){
+    printf("Cought signal %d!\n",signal);
+	if (signal==SIGCHLD) {
+		printf("Child ended\n");
+		wait(NULL);
+	}
+}
 
-    printf("just caught SIGTERM SIGNAL");
+
+void terminate(){
+    
+    //pid_t kidpid;
+   // int status;
+    
+   // while ((kidpid = waitpid(-1, &status, WNOHANG)) > 0)
+   // {
+   //     printf("Child %d terminated\n", kidpid);
+   // }
+    int status;
+    while(wait(&status)>0){}
+    printf("just caught SIGTERM SIGNAL status:%i",status);
+    exit(EXIT_SUCCESS);
 }
 
